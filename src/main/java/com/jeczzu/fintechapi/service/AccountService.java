@@ -1,13 +1,16 @@
 package com.jeczzu.fintechapi.service;
 
 
-import com.jeczzu.fintechapi.entity.Account;
-import com.jeczzu.fintechapi.exception.BusinessException;
-import com.jeczzu.fintechapi.repository.AccountRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import com.jeczzu.fintechapi.entity.Account;
+import com.jeczzu.fintechapi.exception.ConflictException;
+import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
+import com.jeczzu.fintechapi.repository.AccountRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +21,7 @@ public class AccountService {
   public Account createAccount(String ownerName, String email) {
 
     if (accountRepository.findByEmail(email).isPresent()) {
-      throw new BusinessException("Email already registered");
+      throw new ConflictException("Email already registered");
     }
 
     Account account = Account
@@ -32,6 +35,6 @@ public class AccountService {
 
   public Account getAccountById(UUID id) {
     return accountRepository.findById(id)
-        .orElseThrow(() -> new BusinessException("Account not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
   }
 }
