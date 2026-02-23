@@ -1,9 +1,9 @@
 package com.jeczzu.fintechapi.service;
 
-
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.exception.ConflictException;
@@ -18,10 +18,11 @@ public class AccountService {
 
   private final AccountRepository accountRepository;
 
+  @Transactional
   public Account createAccount(String ownerName, String email) {
 
     if (accountRepository.findByEmail(email).isPresent()) {
-      throw new ConflictException("Email already registered");
+      throw new ConflictException("An account with email '" + email + "' already exists");
     }
 
     Account account = Account
@@ -33,8 +34,10 @@ public class AccountService {
     return accountRepository.save(account);
   }
 
+  @Transactional(readOnly = true)
   public Account getAccountById(UUID id) {
     return accountRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        .orElseThrow(() -> new ResourceNotFoundException(
+            "Account not found with id: " + id));
   }
 }
