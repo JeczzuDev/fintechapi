@@ -14,5 +14,11 @@ spring:
         format_sql: true
     open-in-view: false
 
+  mvc:
+    problemdetails:
+      enabled: true
+
 server:
   port: 8080
+  error:
+    include-stacktrace: never
