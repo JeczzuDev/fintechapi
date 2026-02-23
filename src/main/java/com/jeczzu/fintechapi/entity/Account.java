@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,6 +42,9 @@ public class Account {
 
   @Column(name="created_at", nullable=false, updatable=false)
   private OffsetDateTime createdAt;
+
+  @Version
+  private Long version;
 
   @PrePersist
   public void prePersist() {
