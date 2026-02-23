@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import com.jeczzu.fintechapi.dto.AccountResponse;
 import com.jeczzu.fintechapi.dto.CreateAccountRequest;
 import com.jeczzu.fintechapi.entity.Account;
+import com.jeczzu.fintechapi.mapper.AccountMapper;
 import com.jeczzu.fintechapi.service.AccountService;
 
 import jakarta.validation.Valid;
@@ -31,32 +32,15 @@ public class AccountController {
         request.ownerName(),
         request.email());
 
-    AccountResponse response = new AccountResponse(
-        account.getId(),
-        account.getOwnerName(),
-        account.getEmail(),
-        account.getBalance(),
-        account.getCreatedAt());
-
     return ResponseEntity
         .created(URI.create("/api/accounts/" + account.getId()))
-        .body(response);
+        .body(AccountMapper.toResponse(account));
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID id) {
 
     Account account = accountService.getAccountById(id);
-
-    AccountResponse response = new AccountResponse(
-      account.getId(),
-      account.getOwnerName(),
-      account.getEmail(),
-      account.getBalance(),
-      account.getCreatedAt()
-    );
-
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(AccountMapper.toResponse(account));
   }
-  
 }
