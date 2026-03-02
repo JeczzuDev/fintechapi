@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.jeczzu.fintechapi.config.TransactionConstants;
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.entity.Transaction;
 import com.jeczzu.fintechapi.entity.TransactionType;
@@ -22,10 +23,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
-
-  private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("1000000.00");
-  private static final BigDecimal MAX_BALANCE = new BigDecimal("99999999.99");
-  private static final int MAX_DECIMAL_PLACES = 2;
 
   private final TransactionRepository transactionRepository;
   private final AccountRepository accountRepository;
@@ -50,9 +47,9 @@ public class TransactionService {
 
     if (type == TransactionType.DEPOSIT) {
       BigDecimal newBalance = account.getBalance().add(amount);
-      if (newBalance.compareTo(MAX_BALANCE) > 0) {
+      if (newBalance.compareTo(TransactionConstants.MAX_BALANCE) > 0) {
         throw new InvalidAmountException(
-            "Deposit would exceed maximum allowed balance of " + MAX_BALANCE);
+            "Deposit would exceed maximum allowed balance of " + TransactionConstants.MAX_BALANCE);
       }
       account.setBalance(newBalance);
     }
@@ -87,13 +84,13 @@ public class TransactionService {
   }
 
   private void validateAmount(BigDecimal amount) {
-    if (amount.stripTrailingZeros().scale() > MAX_DECIMAL_PLACES) {
+    if (amount.stripTrailingZeros().scale() > TransactionConstants.MAX_DECIMAL_PLACES) {
       throw new InvalidAmountException(
-          "Amount cannot have more than " + MAX_DECIMAL_PLACES + " decimal places");
+          "Amount cannot have more than " + TransactionConstants.MAX_DECIMAL_PLACES + " decimal places");
     }
-    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+    if (amount.compareTo(TransactionConstants.MAX_TRANSACTION_AMOUNT) > 0) {
       throw new InvalidAmountException(
-          "Amount exceeds maximum allowed per transaction: " + MAX_TRANSACTION_AMOUNT);
+          "Amount exceeds maximum allowed per transaction: " + TransactionConstants.MAX_TRANSACTION_AMOUNT);
     }
   }
 }
