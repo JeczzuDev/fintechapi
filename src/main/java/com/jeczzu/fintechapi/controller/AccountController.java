@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 
+import com.jeczzu.fintechapi.config.ApiRoutes;
 import com.jeczzu.fintechapi.dto.AccountResponse;
 import com.jeczzu.fintechapi.dto.CreateAccountRequest;
 import com.jeczzu.fintechapi.entity.Account;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api/accounts")
+@RequestMapping(ApiRoutes.ACCOUNTS)
 @RequiredArgsConstructor
 public class AccountController {
 
@@ -33,11 +34,11 @@ public class AccountController {
         request.email());
 
     return ResponseEntity
-        .created(URI.create("/api/accounts/" + account.getId()))
+        .created(URI.create(ApiRoutes.ACCOUNTS + "/" + account.getId()))
         .body(AccountMapper.toResponse(account));
   }
 
-  @GetMapping("/{id}")
+  @GetMapping(ApiRoutes.ACCOUNT_BY_ID)
   public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID id) {
 
     Account account = accountService.getAccountById(id);
