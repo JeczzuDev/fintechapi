@@ -1,30 +1,28 @@
 package com.jeczzu.fintechapi.controller;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jeczzu.fintechapi.config.ApiRoutes;
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.exception.ConflictException;
 import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
 import com.jeczzu.fintechapi.service.AccountService;
+import com.jeczzu.fintechapi.utils.AccountUtils;
 
 @WebMvcTest(AccountController.class)
 class AccountControllerTest {
@@ -35,17 +33,6 @@ class AccountControllerTest {
   @MockitoBean
   private AccountService accountService;
 
-  private Account buildAccount(UUID id, String ownerName, String email) {
-    return Account.builder()
-        .id(id)
-        .ownerName(ownerName)
-        .email(email)
-        .balance(BigDecimal.ZERO)
-        .createdAt(OffsetDateTime.now())
-        .version(0L)
-        .build();
-  }
-
   @Nested
   @DisplayName("POST " + ApiRoutes.ACCOUNTS)
   class CreateAccount {
@@ -55,7 +42,7 @@ class AccountControllerTest {
     void shouldReturn201_whenRequestIsValid() throws Exception {
 
       UUID id = UUID.randomUUID();
-      Account account = buildAccount(id, "Juan Pérez", "juan@mail.com");
+      Account account = AccountUtils.buildAccount(id, "Juan Pérez", "juan@mail.com");
 
       when(accountService.createAccount("Juan Pérez", "juan@mail.com"))
           .thenReturn(account);
@@ -79,7 +66,7 @@ class AccountControllerTest {
     void shouldReturn409_whenEmailIsAlreadyTaken() throws Exception {
 
       UUID id = UUID.randomUUID();
-      Account account = buildAccount(id, "Juan Pérez", "juan@mail.com");
+      Account account = AccountUtils.buildAccount(id, "Juan Pérez", "juan@mail.com");
 
       when(accountService.createAccount(account.getOwnerName(), account.getEmail()))
           .thenThrow(new ConflictException(
@@ -135,7 +122,7 @@ class AccountControllerTest {
     void shouldReturn200_whenAccountExists() throws Exception {
 
       UUID id = UUID.randomUUID();
-      Account account = buildAccount(id, "Juan Pérez", "juan@mail.com");
+      Account account = AccountUtils.buildAccount(id, "Juan Pérez", "juan@mail.com");
 
       when(accountService.getAccountById(id))
           .thenReturn(account);
