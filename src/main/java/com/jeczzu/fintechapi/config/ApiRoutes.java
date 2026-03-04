@@ -1,7 +1,7 @@
 package com.jeczzu.fintechapi.config;
 
 public final class ApiRoutes {
-  
+
   private ApiRoutes() {
   }
 
@@ -12,5 +12,5 @@ public final class ApiRoutes {
   public static final String ACCOUNT_BY_ID = "/{id}";
 
   // TransactionController
-  public static final String TRANSACTIONS = API_BASE + "/transactions";
+  public static final String TRANSACTIONS = ACCOUNTS + "/{accountId}/transactions";
 }
