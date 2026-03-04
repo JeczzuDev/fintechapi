@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jeczzu.fintechapi.config.ApiRoutes;
 import com.jeczzu.fintechapi.dto.CreateTransactionRequest;
 import com.jeczzu.fintechapi.dto.TransactionResponse;
 import com.jeczzu.fintechapi.entity.Transaction;
@@ -24,7 +25,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/accounts/{accountId}/transactions")
+@RequestMapping(ApiRoutes.TRANSACTIONS)
 @RequiredArgsConstructor
 public class TransactionController {
 
@@ -41,7 +42,7 @@ public class TransactionController {
     TransactionResponse response = TransactionMapper.toResponse(transaction);
 
     URI location = URI.create(
-        "/api/accounts/" + accountId + "/transactions/" + transaction.getId());
+        ApiRoutes.ACCOUNTS + "/" + accountId + "/transactions/" + transaction.getId());
     return ResponseEntity.created(location).body(response);
   }
 
