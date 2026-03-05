@@ -13,4 +13,5 @@ public final class ApiRoutes {
 
   // TransactionController
   public static final String TRANSACTIONS = ACCOUNTS + "/{accountId}/transactions";
+  public static final String TRANSACTION_BY_ID = "/{transactionId}";
 }
