@@ -58,7 +58,7 @@ public class TransactionController {
     return ResponseEntity.ok(transactions);
   }
 
-  @GetMapping("/{transactionId}")
+  @GetMapping(ApiRoutes.TRANSACTION_BY_ID)
   public ResponseEntity<TransactionResponse> getTransaction(
       @PathVariable UUID accountId,
       @PathVariable UUID transactionId) {
