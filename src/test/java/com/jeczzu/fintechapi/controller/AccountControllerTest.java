@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,15 +19,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jeczzu.fintechapi.config.ApiRoutes;
-import com.jeczzu.fintechapi.config.SecurityConfig;
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.exception.ConflictException;
 import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
+import com.jeczzu.fintechapi.repository.UserRepository;
 import com.jeczzu.fintechapi.service.AccountService;
+import com.jeczzu.fintechapi.service.JwtService;
 import com.jeczzu.fintechapi.utils.AccountUtils;
 
 @WebMvcTest(AccountController.class)
-@Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AccountControllerTest {
 
   @Autowired
@@ -35,6 +36,12 @@ class AccountControllerTest {
 
   @MockitoBean
   private AccountService accountService;
+
+  @MockitoBean
+  private JwtService jwtService;
+
+  @MockitoBean
+  private UserRepository userRepository;
 
   @Nested
   @DisplayName("POST " + ApiRoutes.ACCOUNTS)

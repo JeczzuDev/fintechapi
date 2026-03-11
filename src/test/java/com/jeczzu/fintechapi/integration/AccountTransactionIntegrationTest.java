@@ -10,19 +10,26 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jeczzu.fintechapi.config.ApiRoutes;
 import com.jeczzu.fintechapi.dto.AccountResponse;
+import com.jeczzu.fintechapi.dto.AuthResponse;
 import com.jeczzu.fintechapi.dto.CreateAccountRequest;
 import com.jeczzu.fintechapi.dto.CreateTransactionRequest;
+import com.jeczzu.fintechapi.dto.RegisterRequest;
 import com.jeczzu.fintechapi.dto.TransactionResponse;
 import com.jeczzu.fintechapi.entity.TransactionType;
 import com.jeczzu.fintechapi.repository.AccountRepository;
 import com.jeczzu.fintechapi.repository.TransactionRepository;
+import com.jeczzu.fintechapi.repository.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class AccountTransactionIntegrationTest {
@@ -36,17 +43,40 @@ class AccountTransactionIntegrationTest {
   @Autowired
   private AccountRepository accountRepository;
 
+  @Autowired
+  private UserRepository userRepository;
+
+  private String jwtToken;
+
   @BeforeEach
-  void cleanDatabase() {
+  void setUp() {
     transactionRepository.deleteAll();
     accountRepository.deleteAll();
+    userRepository.deleteAll();
+
+    ResponseEntity<AuthResponse> authResponse = restTemplate.postForEntity(
+        ApiRoutes.AUTH + ApiRoutes.AUTH_REGISTER,
+        new RegisterRequest("test@integration.com", "password123"),
+        AuthResponse.class);
+
+    assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertThat(authResponse.getBody()).isNotNull();
+    jwtToken = authResponse.getBody().token();
+  }
+
+  private HttpHeaders authHeaders() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(jwtToken);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    return headers;
   }
 
   private AccountResponse createAccount(String name, String email) {
+    HttpEntity<CreateAccountRequest> request = new HttpEntity<>(
+        new CreateAccountRequest(name, email), authHeaders());
+
     ResponseEntity<AccountResponse> response = restTemplate.postForEntity(
-        ApiRoutes.ACCOUNTS,
-        new CreateAccountRequest(name, email),
-        AccountResponse.class);
+        ApiRoutes.ACCOUNTS, request, AccountResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     assertThat(response.getBody()).isNotNull();
@@ -54,11 +84,11 @@ class AccountTransactionIntegrationTest {
   }
 
   private TransactionResponse createTransaction(AccountResponse account, BigDecimal amount, TransactionType type) {
+    HttpEntity<CreateTransactionRequest> request = new HttpEntity<>(
+        new CreateTransactionRequest(amount, type), authHeaders());
+
     ResponseEntity<TransactionResponse> response = restTemplate.postForEntity(
-        ApiRoutes.TRANSACTIONS,
-        new CreateTransactionRequest(amount, type),
-        TransactionResponse.class,
-        account.id());
+        ApiRoutes.TRANSACTIONS, request, TransactionResponse.class, account.id());
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     assertThat(response.getBody()).isNotNull();
@@ -81,8 +111,10 @@ class AccountTransactionIntegrationTest {
     assertThat(withdraw.amount()).isEqualByComparingTo(new BigDecimal("200.00"));
     assertThat(withdraw.type()).isEqualTo(TransactionType.WITHDRAW);
 
-    ResponseEntity<AccountResponse> getResponse = restTemplate.getForEntity(
+    ResponseEntity<AccountResponse> getResponse = restTemplate.exchange(
         ApiRoutes.ACCOUNTS + "/{id}",
+        HttpMethod.GET,
+        new HttpEntity<>(authHeaders()),
         AccountResponse.class,
         account.id());
 
@@ -98,18 +130,21 @@ class AccountTransactionIntegrationTest {
     AccountResponse account = createAccount("Juan Pérez", "juan@mail.com");
     createTransaction(account, new BigDecimal("100.00"), TransactionType.DEPOSIT);
 
-    ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
-        ApiRoutes.TRANSACTIONS,
+    HttpEntity<CreateTransactionRequest> request = new HttpEntity<>(
         new CreateTransactionRequest(new BigDecimal("500.00"), TransactionType.WITHDRAW),
-        ProblemDetail.class,
-        account.id());
+        authHeaders());
+
+    ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
+        ApiRoutes.TRANSACTIONS, request, ProblemDetail.class, account.id());
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getTitle()).isEqualTo("Conflict");
 
-    ResponseEntity<AccountResponse> getResponse = restTemplate.getForEntity(
+    ResponseEntity<AccountResponse> getResponse = restTemplate.exchange(
         ApiRoutes.ACCOUNTS + "/{id}",
+        HttpMethod.GET,
+        new HttpEntity<>(authHeaders()),
         AccountResponse.class,
         account.id());
 
@@ -123,10 +158,12 @@ class AccountTransactionIntegrationTest {
   void shouldReturn409_whenCreatingAccountWithDuplicateEmail() {
 
     createAccount("Juan Pérez", "juan@mail.com");
+
+    HttpEntity<CreateAccountRequest> request = new HttpEntity<>(
+        new CreateAccountRequest("Juan Pérez", "juan@mail.com"), authHeaders());
+
     ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
-        ApiRoutes.ACCOUNTS,
-        new CreateAccountRequest("Juan Pérez", "juan@mail.com"),
-        ProblemDetail.class);
+        ApiRoutes.ACCOUNTS, request, ProblemDetail.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     assertThat(response.getBody()).isNotNull();
@@ -138,11 +175,12 @@ class AccountTransactionIntegrationTest {
   @DisplayName("should return 404 when depositing to non-existent account")
   void shouldReturn404_whenDepositingToNonExistentAccount() {
 
-    ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
-        ApiRoutes.TRANSACTIONS,
+    HttpEntity<CreateTransactionRequest> request = new HttpEntity<>(
         new CreateTransactionRequest(new BigDecimal("100.00"), TransactionType.DEPOSIT),
-        ProblemDetail.class,
-        java.util.UUID.randomUUID());
+        authHeaders());
+
+    ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
+        ApiRoutes.TRANSACTIONS, request, ProblemDetail.class, java.util.UUID.randomUUID());
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isNotNull();
@@ -158,8 +196,10 @@ class AccountTransactionIntegrationTest {
     createTransaction(account, new BigDecimal("200.00"), TransactionType.DEPOSIT);
     createTransaction(account, new BigDecimal("300.00"), TransactionType.DEPOSIT);
 
-    ResponseEntity<String> response = restTemplate.getForEntity(
+    ResponseEntity<String> response = restTemplate.exchange(
         ApiRoutes.TRANSACTIONS + "?page=0&size=10",
+        HttpMethod.GET,
+        new HttpEntity<>(authHeaders()),
         String.class,
         account.id());
 
@@ -174,8 +214,10 @@ class AccountTransactionIntegrationTest {
     assertThat(amounts).hasSize(3).containsExactlyInAnyOrder(100.00, 200.00, 300.00);
 
     // Verificar que el balance final de la cuenta es 600.00
-    ResponseEntity<AccountResponse> getResponse = restTemplate.getForEntity(
+    ResponseEntity<AccountResponse> getResponse = restTemplate.exchange(
         ApiRoutes.ACCOUNTS + "/{id}",
+        HttpMethod.GET,
+        new HttpEntity<>(authHeaders()),
         AccountResponse.class,
         account.id());
 

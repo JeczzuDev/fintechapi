@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,18 +24,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jeczzu.fintechapi.config.ApiRoutes;
-import com.jeczzu.fintechapi.config.SecurityConfig;
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.entity.Transaction;
 import com.jeczzu.fintechapi.entity.TransactionType;
 import com.jeczzu.fintechapi.exception.InsufficientFundsException;
 import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
+import com.jeczzu.fintechapi.repository.UserRepository;
+import com.jeczzu.fintechapi.service.JwtService;
 import com.jeczzu.fintechapi.service.TransactionService;
 import com.jeczzu.fintechapi.utils.AccountUtils;
 import com.jeczzu.fintechapi.utils.TransactionUtils;
 
 @WebMvcTest(TransactionController.class)
-@Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class TransactionControllerTest {
 
 	@Autowired
@@ -43,6 +44,12 @@ public class TransactionControllerTest {
 
 	@MockitoBean
 	private TransactionService transactionService;
+
+	@MockitoBean
+	private JwtService jwtService;
+
+	@MockitoBean
+	private UserRepository userRepository;
 
 	@Nested
 	@DisplayName("POST " + ApiRoutes.TRANSACTIONS)
