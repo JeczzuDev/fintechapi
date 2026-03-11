@@ -11,6 +11,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -42,6 +43,15 @@ public class GlobalExceptionHandler {
     ProblemDetail problem = createProblemDetail(
         HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
     return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<ProblemDetail> handleBadCredentials(
+      BadCredentialsException ex, HttpServletRequest request) {
+
+    ProblemDetail problem = createProblemDetail(
+        HttpStatus.UNAUTHORIZED, "Authentication Failed", ex.getMessage(), request);
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
   }
 
   @ExceptionHandler(BusinessException.class)
