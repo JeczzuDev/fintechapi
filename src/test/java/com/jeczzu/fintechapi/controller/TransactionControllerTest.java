@@ -1,19 +1,21 @@
 package com.jeczzu.fintechapi.controller;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
-import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,11 +26,11 @@ import com.jeczzu.fintechapi.config.ApiRoutes;
 import com.jeczzu.fintechapi.entity.Account;
 import com.jeczzu.fintechapi.entity.Transaction;
 import com.jeczzu.fintechapi.entity.TransactionType;
+import com.jeczzu.fintechapi.exception.InsufficientFundsException;
+import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
 import com.jeczzu.fintechapi.service.TransactionService;
 import com.jeczzu.fintechapi.utils.AccountUtils;
 import com.jeczzu.fintechapi.utils.TransactionUtils;
-import com.jeczzu.fintechapi.exception.InsufficientFundsException;
-import com.jeczzu.fintechapi.exception.ResourceNotFoundException;
 
 @WebMvcTest(TransactionController.class)
 public class TransactionControllerTest {
@@ -183,8 +185,7 @@ public class TransactionControllerTest {
 			when(transactionService.getTransactionById(accountId, transactionId)).thenReturn(transaction);
 
 			mockMvc.perform(
-					get(ApiRoutes.TRANSACTIONS + "/" + transactionId, accountId)
-							.contentType(MediaType.APPLICATION_JSON))
+					get(ApiRoutes.TRANSACTIONS + "/" + transactionId, accountId))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.id").value(transactionId.toString()))
 					.andExpect(jsonPath("$.accountId").value(accountId.toString()))
@@ -203,8 +204,7 @@ public class TransactionControllerTest {
 					.thenThrow(new ResourceNotFoundException("Transaction not found with id: " + transactionId));
 
 			mockMvc.perform(
-					get(ApiRoutes.TRANSACTIONS + "/" + transactionId, accountId)
-							.contentType(MediaType.APPLICATION_JSON))
+					get(ApiRoutes.TRANSACTIONS + "/" + transactionId, accountId))
 					.andExpect(status().isNotFound())
 					.andExpect(jsonPath("$.title").value("Resource Not Found"))
 					.andExpect(jsonPath("$.detail").value("Transaction not found with id: " + transactionId));
@@ -218,12 +218,84 @@ public class TransactionControllerTest {
 			String invalidTransactionId = "not-a-uuid";
 
 			mockMvc.perform(
-					get(ApiRoutes.TRANSACTIONS + "/" + invalidTransactionId, accountId)
-							.contentType(MediaType.APPLICATION_JSON))
+					get(ApiRoutes.TRANSACTIONS + "/" + invalidTransactionId, accountId))
 					.andExpect(status().isBadRequest())
 					.andExpect(jsonPath("$.title").value("Invalid Parameter"))
 					.andExpect(jsonPath("$.detail").value(
 							"Invalid value 'not-a-uuid' for parameter 'transactionId'. Expected type: UUID"));
+		}
+	}
+
+	@Nested
+	@DisplayName("GET " + ApiRoutes.TRANSACTIONS)
+	class GetAccountTransactions {
+
+		@Test
+		@DisplayName("should return 200 and paginated transactions when account has transactions")
+		void shouldReturn200_whenAccountHasTransactions() throws Exception {
+
+			UUID accountId = UUID.randomUUID();
+			Account account = AccountUtils.buildAccount(accountId, "Juan Pérez", "juan@mail.com");
+
+			Transaction transaction1 = TransactionUtils.buildTransaction(account, new BigDecimal("100.00"),
+					TransactionType.DEPOSIT);
+			Transaction transaction2 = TransactionUtils.buildTransaction(account, new BigDecimal("50.00"),
+					TransactionType.WITHDRAW);
+
+			when(transactionService.getTransactionsByAccountId(accountId, PageRequest.of(0, 20)))
+					.thenReturn(new PageImpl<>(List.of(transaction1, transaction2)));
+
+			mockMvc.perform(
+					get(ApiRoutes.TRANSACTIONS, accountId))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.content.length()").value(2))
+					.andExpect(jsonPath("$.content[0].id").value(transaction1.getId().toString()))
+					.andExpect(jsonPath("$.content[1].id").value(transaction2.getId().toString()));
+		}
+
+		@Test
+		@DisplayName("should return 200 and empty page when account has no transactions")
+		void shouldReturn200_whenAccountHasNoTransactions() throws Exception {
+
+			UUID accountId = UUID.randomUUID();
+
+			when(transactionService.getTransactionsByAccountId(accountId, PageRequest.of(0, 20)))
+					.thenReturn(Page.empty());
+
+			mockMvc.perform(
+					get(ApiRoutes.TRANSACTIONS, accountId))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.content.length()").value(0));
+		}
+
+		@Test
+		@DisplayName("should return 404 when account does not exist")
+		void shouldReturn404_whenAccountDoesNotExist() throws Exception {
+
+			UUID accountId = UUID.randomUUID();
+
+			when(transactionService.getTransactionsByAccountId(accountId, PageRequest.of(0, 20)))
+					.thenThrow(new ResourceNotFoundException("Account not found with id: " + accountId));
+
+			mockMvc.perform(
+					get(ApiRoutes.TRANSACTIONS, accountId))
+					.andExpect(status().isNotFound())
+					.andExpect(jsonPath("$.title").value("Resource Not Found"))
+					.andExpect(jsonPath("$.detail").value("Account not found with id: " + accountId));
+		}
+
+		@Test
+		@DisplayName("should return 400 when accountId is not a valid UUID")
+		void shouldReturn400_whenAccountIdIsNotValidUUID() throws Exception {
+
+			String invalidAccountId = "not-a-uuid";
+
+			mockMvc.perform(
+					get(ApiRoutes.TRANSACTIONS, invalidAccountId))
+					.andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.title").value("Invalid Parameter"))
+					.andExpect(jsonPath("$.detail").value(
+							"Invalid value 'not-a-uuid' for parameter 'accountId'. Expected type: UUID"));
 		}
 	}
 }
