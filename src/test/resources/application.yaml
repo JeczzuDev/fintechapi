@@ -21,3 +21,7 @@ spring:
 server:
   error:
     include-stacktrace: never
+
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtYXQtbGVhc3QtMjU2LWJpdHMtbG9uZy1mb3ItaHMyNTYtYWxnb3JpdGht
+  expiration: 86400000
